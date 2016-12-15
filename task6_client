@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+#submitted By: hara12
+# Perl assignment task 6 UDP SNTP client.
+#tested on server localhost @ port 8080.
+use IO::Socket;
+
+my $server_ip = shift or die "Usage: perl task6_client ip_address port_number\n";
+my $port = shift or die "Usage: perl task6_client ip_address port_number\n";
+my $socket = new IO::Socket::INET 
+(
+    PeerHost =>"$server_ip",
+    PeerPort => "$port",
+    Proto => 'udp',
+)or die "cannot connect to the server.\n" unless $socket;
+   # unicast message header set to zero except first octet.LV=0,version=1,mode=3(client) 
+ my $data = pack("B8 C B8 C N9 N N", '00100011',0,'00000000',0,0, 0,0);
+$socket->send($data) or die"Error! Could not send data to server.\n";
+
+$socket->recv($data, length($data))
+    or die "Error!Could not recieve data from server.\n";
+
+    @myArray = unpack("N12",$data);
+    $time = @myArray[10];
+    print "$time\n";
+$socket->close();    
+
+

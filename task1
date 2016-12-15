@@ -1,0 +1,45 @@
+#!/usr/bin/perl
+#submitted By: hara12
+# Perl assignment task 1 Display the contents of ASCII file, Print number of lines and number of characters.
+
+#$fn 		= $ARGV[0];
+my $fn = shift or die "Usage: perl task1 yourasciifile\n";
+
+# Initializing the Number of line and character variable with 0.
+
+$numoflines = 0;
+$numofchars = 0;
+
+# Using open function to open the file and the pointer will be save to variable $fh
+# die condition used with a message is the file name give from the command line could
+# doesn't exsist
+
+open($fh, '<', $fn) or die "Could not open file $fn ";
+
+# Using While loop condition as long as we are getting data per line.
+
+while ($line = <$fh>){
+	
+	# incrementing Number Lines found.	
+	$numoflines ++;
+
+	# incrementing Number Characters found.    	
+	$numofchars += length($line);
+
+	#Printing the Content Of the File line by line
+	print "File Content : \n";	
+	print $line;
+
+}
+
+close $fh;
+
+print "\n";
+print "Reading from File   = " . $fn . "\n";
+print "Number of Lines     = ". $numoflines . "\n";
+print "Number of Character = ". $numofchars . "\n";
+print "\n";
+
+# End of file task1
+
+

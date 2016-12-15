@@ -1,0 +1,26 @@
+#submitted By: hara12
+#!/usr/bin/perl
+# Perl assignment task 7
+use Net::SNMP;
+use Time::HiRes ;
+my $host_port = shift or die "Usage: perl <filename.pl> <IP:PORT> <Community> \n"; 
+my @array = split (/:/,$host_port);
+
+my $community = shift or die "Usage: perl <filename.pl> <IP:PORT> <Community> \n";
+($session,$error)=Net::SNMP->session(Hostname => "$array[0]", Community=> "$community",
+                                     Port => "$array[1]",
+                                     Timeout => "2");
+die "session error:$error" unless($session);
+
+$sys_time="1.3.6.1.2.1.1.3.0";
+$sysDescr="1.3.6.1.2.1.1.1.0";
+@sys=($sys_time,$sysDescr);
+
+$result=$session->get_request(@sys);
+$systme=$result->{"$sys_time"};
+$sysDescr=$result->{"$sysDescr"};
+
+print "System time is  $systme \n";
+print "System Description  $sysDescr \n";
+
+$session->close();

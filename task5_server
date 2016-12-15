@@ -1,0 +1,136 @@
+#submitted By: hara12
+# Perl assignment task 5 tcp chat server
+#Usage: perl task5_server Port Number
+use warnings;
+use strict;
+use IO::Socket;
+use threads;
+use threads::shared;
+#flush memory after each initialization
+$|=1;
+our @clients : shared;
+@clients = ();
+
+
+my $port = shift or die "Usage: perl task5_server port_number(testport 8080)\n";#recieving port number as an aurgument.
+
+my $server = new IO::Socket::INET(
+    Proto     => 'tcp',
+    LocalPort => $port,
+    Reuse     => 1,
+    Listen    => 3
+);#opening new socket
+
+print "server running on port number" .$port.".\n";
+print "waiting for a connection....\n";
+my $num_of_client = 0;
+
+while (1) {
+
+	print "server is running \n";
+    my $client;
+
+    do {
+        $client = $server->accept;#acceting client multiple with the TRUE loop
+    } until ( defined($client) );
+    
+    die "no connection" unless $client->connected();
+    my $peerhost = $client->peerhost();
+    my $port = $client->peerport();
+    #Displaying new connection information 
+    print "New Connection with Socket_ID = " ,++$num_of_client, " , IP Address: ".$peerhost." From PORT: ".$port. ".\n";
+	#create a file to handle an array
+    my $file_handler = fileno $client;
+	#add new client to the array
+    push (@clients, $file_handler); #add to the end of array
+	#create a thread       
+    my $myThread = threads->new( \&clients_handler,$client, $file_handler, $peerhost )->detach();
+
+
+    
+
+}
+#clients chat handler
+sub clients_handler{
+     my ($new_client, $new_file_handler, $new_peer) = @_; #local client
+	 #sending acknowledgment   
+     if($new_client->connected){
+        print $new_client "Hello V1!\n";
+	
+	while(my $nick_name = <$new_client>){
+	my $nick = substr($nick_name, 0, 5);
+	
+	if($nick eq "NICK ")
+	{
+		my $nickname = substr($nick_name, 5, length($nick_name)-5);
+		chomp($nickname);
+		print $new_client "OK! \n";
+		my $get_nick = substr($nick_name, 5, length($nick_name)-5);
+				my @array = split /,/,$get_nick;
+				my $nickNa = $array[0];
+				my $trash= $array[1];
+				my $first_msg=substr($trash,0,4);
+				if($first_msg eq "MSG ")
+				{
+					my $mess= substr($trash, 4, length($trash)-4);
+					chomp($mess);
+					my $first_send = "$first_msg $nickNa $mess";
+					chomp($first_send);
+					print "$first_send \n";
+					foreach my $chat_room (@clients) 
+					{
+						open my $chat_data, ">&=$chat_room" or die;
+						if(defined($chat_data)){
+							print $chat_data "$first_send \n";
+						}
+						#print $chat_data "$first_send \n";
+					}
+
+				}
+#broadcast client messsage		
+while(my $cli_message = <$new_client>){
+
+
+	
+	my $msg = substr($cli_message, 0, 4);
+	
+	if($msg eq "MSG "){
+		my $message = substr($cli_message, 4, length($cli_message)-4);
+		chomp($message);
+		my $send_msg = "$msg $nickNa $message";
+		chomp($send_msg);
+		print "$send_msg\n";
+		foreach my $chat_room (@clients) {
+			#died abnormaly due to one client disconnected fix due (print() on closed filehandle)
+			open my $chat_data, ">&=$chat_room";
+			#or die
+			#print eof $chat_data;
+			if(defined($chat_data)){
+				print $chat_data "$send_msg \n";
+			}
+			
+		}
+		}
+		else {
+			print $new_client "Error!: Server not able recognize Message. \n";
+		}
+
+
+	}
+	}
+	else {
+		print $new_client "Error: Server not able recognize NICK. \n";
+	}
+}
+}
+#closing local client
+print $new_client;
+
+foreach my $chat_room (@clients) {
+	open my $chat_data, ">&=$chat_room";
+	print $chat_room;
+}
+
+close( $new_client);
+}
+

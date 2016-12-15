@@ -1,0 +1,99 @@
+#!/usr/bin/perl
+#submitted By: hara12
+# Perl assignment task 4 Edit artist and title of a mp3 file.
+
+my $myFile 	= shift or die "Usage: <file.mp3> <artist> <title>\n";
+my $newArtist	= shift or die "Usage: <file.mp3> <artist> <title>\n";
+my $newTitle	= shift or die "Usage:<file.mp3> <artist> <title> \n";
+
+#Pack data for artist name and title. creating frame of size 4byte.
+my $artist_len = length($newArtist);
+my $title_len = length($newTitle);
+my $artist = pack('N',$artist_len);
+my $title = pack('N',$title_len);
+
+print"\n New artist name will be >>". $newArtist."\n";
+print"\n New title will be >> ". $newTitle ."\n";
+
+my $encoding = ":raw :bytes";
+open myMP3, "+<$encoding",$myFile or die "Error!Can NOT open the MP3 file.\n";
+open OUT_FILE, "+>$encoding", 'new.mp3' or die "Error!Can NOT open the file to write.\n";
+
+my $length = 512;
+read (myMP3, my $buffer, $length);
+chomp($buffer);
+
+#reading the first 10 bytes of the ID3v2 Header
+my $tagheader = substr($buffer, 0, 10);
+my ($IDtag, $version, $revision, $flags, $size) = unpack('A3 h h h N4',$tagheader);
+print OUT_FILE $tagheader;
+
+my $len = 0;
+my $ptr1 = 0;
+my $ptr2 = 0;
+
+while(1)
+{    
+   #reading 10 bytes for each frame and adding 10 bytes for next frame  
+    $ptr1 += 10+$len;
+    $ptr2 = $ptr1+10;
+    
+   #reading header 
+   #4bytes frame ID,
+   #4bytes frame size
+   #2bytes flags
+    my $frameHeader = substr($buffer,$ptr1,10);
+    my($frameID, $frameSize, $flag) = unpack('A4 N4 h2',$frameHeader);
+
+    #TALB:album-name,TCON:content-type,TIT2:title,TPE1:Artist, TRCK:Track Number,TYER: year
+    if (($frameID eq 'TALB') || ($frameID eq 'TCON') || ($frameID eq 'TIT2') || ($frameID eq  'TPE1') || ($frameID eq 'TRCK') || ($frameID eq  'TYER'))
+    {
+       
+        my $readFrame = substr($buffer, $ptr2, $frameSize);
+        my $myFrame = unpack('A*($frameSize)' ,$readFrame);
+        if ($frameID eq "TPE1")
+	 	{
+            	print OUT_FILE $frameID;
+            	print OUT_FILE $artist;
+            	print OUT_FILE $flag;
+            	print OUT_FILE $newArtist;
+         }
+         
+        elsif ($frameID eq "TIT2") 
+		{
+            	print OUT_FILE $frameID;
+            	print OUT_FILE $title;
+            	print OUT_FILE $flag;
+            	print OUT_FILE $newTitle;
+        }
+        
+        else 
+		{
+           	print OUT_FILE $frameHeader;
+            print OUT_FILE $readFrame;
+        }
+    }
+    else 
+	{
+       	 my $leng = length($buffer) - $ptr1;
+         my $music = substr($buffer, $ptr1, $leng);
+         print OUT_FILE $music;
+        
+         seek(myMP3 , 10 , 0);
+       	 seek(OUT_FILE, 10 , 0);
+         while(<OUT_FILE>)
+         {
+            print myMP3 $_;
+         }
+         unlink 'new.mp3';
+        
+        #close files
+        close(myMP3);
+        close(OUT_FILE);
+        
+        die "\n Update success!\n";
+        
+    }
+    $len=$frameSize;
+}
+

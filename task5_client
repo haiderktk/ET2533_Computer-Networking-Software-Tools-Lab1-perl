@@ -1,0 +1,72 @@
+	#submitted By: hara12
+	# Perl assignment task 5 tcp chat client 
+	use strict;
+	use warnings;
+	use IO::Socket::INET;
+	$|=1;#flush memory after each initialization
+
+	#take server IP address,port number and nickname from command line argument
+	my $ip = shift or die "Usage: perl task5_client ip_address port_number your_nick \n"; 
+	my $port = shift or die "Usage: perl task5_client ip_address port_number your_nick \n";
+	my $nick = shift or die "Usage: perl task5_client ip_address port_number your_nick \n";
+	if (length($nick) >= 12) 
+	{
+		die "Nick name is limited to 12 characters. \n";
+	}
+
+	#creating new socket (TCP)
+	my $socket = IO::Socket::INET->new(
+		PeerAddr => $ip,
+		PeerPort => $port,
+		Proto    => 'tcp') or die "unable connect to $ip";
+	$socket->autoflush(1);	
+	print "Connecting to Server using >> ".$ip."  with port number  ".$port."\n";
+
+	#recieve ack
+	my $ser_ack ="";
+	$socket->recv($ser_ack,256);
+	print"$ser_ack\n";
+	my $nickNa = "NICK $nick,";
+	#print $nickNa"\n";
+	if ($ser_ack eq "Hello V1!\n")
+	{
+	#sending nickname to server
+	$socket->send($nickNa);
+	}
+
+	else {
+		die "failed to recieve server ACK..... Terminating \n";
+	}
+	#$|=1;
+	my $message; 
+	#using fork for duplex communication
+	die "can't fork: $!" unless defined( my $duplex_chat = fork() );
+	my $recieved_msg; 
+	#runs only in the parent process
+	if ($duplex_chat) 
+	{
+		#recieve server's message
+		while ( defined( $recieved_msg = <$socket> ) ) 
+		{
+		print $recieved_msg;
+		}
+	# send SIGTERM to child
+	kill( "TERM", $duplex_chat );
+	}
+	#runs only in the child process
+	else {
+	#send to server
+	while ( defined( $message = <STDIN> ) ) 
+	{
+		if (length($message)<=255) 
+		{
+		print $socket "MSG $message";
+		}
+		else {
+			print"Error! Message is limited to 255 characters.\n";
+		     }
+	}
+	}
+	#close socket
+	close $socket or die "Error! Could not close the conection.\n";
+		

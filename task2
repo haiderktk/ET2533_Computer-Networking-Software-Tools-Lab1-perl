@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+#submitted By: hara12
+# Perl assignment task 2 Read and display the contents of ASCII file.
+#test regular expression '\d{2}-\d{2}-\d{3}-\d{4}'
+#grep -Eo '[[:digit:]]{2}-[[:digit:]]{2}-[[:digit:]]{3}-[[:digit:]]{4}' source.txt > destination.txt
+
+$linec=0;
+my $source	= shift or die "Usage: <pattern> <source.txt> <destination.txt>\n";
+my $pattern	= shift or die "Usage: <pattern> <source.txt> <destination.txt>\n";
+my $destination	= shift or die "Usage: <pattern> <source.txt> <destination.txt>\n";
+
+open($file , '<:encoding(UTF-8)' ,  $source) or die"This file does not exist!";#reading
+open($fn , '>' ,  $destination);# writting
+
+while ( my $line = <$file>)  {   
+    	if ($line=~m /$pattern/){
+    		print  $fn $line;
+		}
+}
+close($destination);
+close($source);
+

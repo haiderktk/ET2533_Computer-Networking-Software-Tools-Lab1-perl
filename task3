@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+#submitted By: hara12
+# Perl assignment task 3 Read ID3v2 tags form the provided mp3 file.
+
+my $myFile = shift or die "Usage: perl task3 <file.mp3>\n";
+open myMP3File, "<$myFile" or die "Error! cant open file \n";#open mode read
+binmode(myMP3File); #read in binary mode.
+#read file and place it in buffer string
+my $length = 512;
+read (myMP3File, my $buffer, $length);
+print "Displaying ID3v2 Header for " .$myFile.": \n";
+my $tagHeader = substr($buffer, 0, 10);#first 10 bytes.
+my ($IDtag, $version, $revision, $flag, $size) = unpack('A3 h h h N4',$tagHeader);
+print "TagID    : $IDtag\n";
+print "Version  : $version\n";
+print "Revision : $revision\n";
+print "Flags    : $flag\n";
+print "Size     : $size\n";
+
+my $len = 0;
+my $ptr1 = 0;
+my $ptr2 = 0;
+
+#Reading frames after header
+while (1)
+{
+	#reading 10 bytes for each frame and adding 10 bytes for next frame	
+	$ptr1 += 10+$len;
+	$ptr2 = $ptr1+10;
+
+	#reading frame header contains 4bytes frame ID,4 bytes frame size, 2 bytes flags
+	my $frameHeader = substr($buffer,$ptr1,10);
+	# A null/space padding string, N 16/32 bit value(big-ending) , h hexadecimal string
+	my($frameID, $frameSize, $flags) = unpack('A4 N4 h2',$frameHeader);
+
+	#TALB:album-name,TCON:content-type,TIT2:title,TPE1:Artist, TRCK:Track Number,TYER: year
+	if (($frameID eq 'TALB') || ($frameID eq 'TCON') || ($frameID eq 'TIT2') || ($frameID eq  'TPE1') || ($frameID eq 'TRCK') || ($frameID eq  'TYER'))
+	{
+	my $readFrame = substr($buffer, $ptr2, $frameSize);#reading frame content
+	my $myFrame = unpack('A*($frameSize)', $readFrame);
+	print "$frameID : $myFrame \n";#frame info
+	$len=$frameSize;#save pointer location.
+	} 
+	else
+	{ die "Ends Here \n"; }
+}
+
+close(myMP3File);
